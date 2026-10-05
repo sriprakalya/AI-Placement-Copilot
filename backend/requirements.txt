@@ -1,1 +1,5 @@
 fastapi[standard]
+mysql-connector-python
+python-dotenv
+pypdf
+python-docx

@@ -1,10 +1,13 @@
 
-
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from apps.models import Student
 from apps.database import db
 import mysql.connector
+import io
+from pypdf import PdfReader
+from docx import Document
+
 
 app = FastAPI(
     title="AI Placement Copilot API",
@@ -104,4 +107,109 @@ def get_students():
     return {
         "count": len(students),
         "students": students
+    }
+
+
+
+
+@app.post("/api/resume/analyze")
+async def analyze_resume(
+    name: str = Form(...),
+    target_role: str = Form(...),
+    resume: UploadFile = File(...)
+):
+
+    if not name.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Name is required."
+        )
+
+    if not target_role.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Target role is required."
+        )
+
+    if not resume.filename:
+        raise HTTPException(
+            status_code=400,
+            detail="Resume file is required."
+        )
+
+    file_bytes = await resume.read()
+
+    filename = resume.filename.lower()
+
+    try:
+
+        if filename.endswith(".pdf"):
+
+            reader = PdfReader(io.BytesIO(file_bytes))
+
+            resume_text = ""
+
+            for page in reader.pages:
+                resume_text += page.extract_text() or ""
+
+        elif filename.endswith(".docx"):
+
+            document = Document(io.BytesIO(file_bytes))
+
+            resume_text = "\n".join(
+                paragraph.text
+                for paragraph in document.paragraphs
+            )
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Only PDF and DOCX files are currently supported."
+            )
+
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not read the resume file."
+        )
+
+    if not resume_text.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Could not extract text from the resume."
+        )
+
+    text = resume_text.lower()
+
+    skills = [
+        "python",
+        "java",
+        "c",
+        "c++",
+        "javascript",
+        "html",
+        "css",
+        "mysql",
+        "sql",
+        "mongodb",
+        "git",
+        "github",
+        "fastapi",
+        "react",
+        "machine learning",
+        "artificial intelligence"
+    ]
+
+    detected_skills = [
+        skill for skill in skills
+        if skill in text
+    ]
+
+    return {
+        "message": "Resume analyzed successfully!",
+        "name": name,
+        "target_role": target_role,
+        "filename": resume.filename,
+        "resume_length": len(resume_text),
+        "detected_skills": detected_skills
     }
