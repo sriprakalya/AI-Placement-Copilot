@@ -1,4 +1,3 @@
-
 // ================= NAVIGATION =================
 
 const menuBtn = document.getElementById("menuBtn");
@@ -8,7 +7,6 @@ menuBtn.addEventListener("click", () => {
     navLinks.classList.toggle("active");
 });
 
-// Close mobile menu after clicking a link
 document.querySelectorAll(".nav-links a").forEach(link => {
     link.addEventListener("click", () => {
         navLinks.classList.remove("active");
@@ -29,8 +27,15 @@ dashboardBtn.addEventListener("click", () => {
 
 // ================= RESUME ANALYSIS =================
 
-const analyzeResumeBtn = document.getElementById("analyzeResumeBtn");
-const resumeMessage = document.getElementById("resumeMessage");
+const analyzeResumeBtn =
+    document.getElementById("analyzeResumeBtn");
+
+const resumeMessage =
+    document.getElementById("resumeMessage");
+
+// Stores the skills detected from the latest resume analysis
+let resumeSkills = [];
+
 
 analyzeResumeBtn.addEventListener("click", async () => {
 
@@ -44,21 +49,25 @@ analyzeResumeBtn.addEventListener("click", async () => {
         document.getElementById("resumeFile").files[0];
 
     if (!name) {
-        resumeMessage.textContent = "Please enter your name.";
+        resumeMessage.textContent =
+            "Please enter your name.";
         return;
     }
 
     if (!targetRole) {
-        resumeMessage.textContent = "Please enter your target role.";
+        resumeMessage.textContent =
+            "Please enter your target role.";
         return;
     }
 
     if (!resumeFile) {
-        resumeMessage.textContent = "Please upload your resume.";
+        resumeMessage.textContent =
+            "Please upload your resume.";
         return;
     }
 
-    resumeMessage.textContent = "Uploading your resume...";
+    resumeMessage.textContent =
+        "Uploading your resume...";
 
     const formData = new FormData();
 
@@ -84,9 +93,17 @@ analyzeResumeBtn.addEventListener("click", async () => {
             );
         }
 
-        const detectedSkills = data.detected_skills || [];
-        const requiredSkills = data.required_skills || [];
-        const skillGap = data.skill_gap || [];
+        const detectedSkills =
+            data.detected_skills || [];
+
+        const requiredSkills =
+            data.required_skills || [];
+
+        const skillGap =
+            data.skill_gap || [];
+
+        // Save resume skills for Job Analysis
+        resumeSkills = detectedSkills;
 
         resumeMessage.innerHTML = `
             <strong>${data.message}</strong><br><br>
@@ -122,24 +139,34 @@ analyzeResumeBtn.addEventListener("click", async () => {
             }
         `;
 
-        console.log("Resume analysis:", data);
+        console.log(
+            "Resume analysis:",
+            data
+        );
 
     } catch (error) {
 
         resumeMessage.textContent =
             `Could not analyze resume: ${error.message}`;
 
-        console.error("Resume analysis error:", error);
+        console.error(
+            "Resume analysis error:",
+            error
+        );
     }
 });
 
 
 // ================= JOB ANALYSIS =================
 
-const analyzeJobBtn = document.getElementById("analyzeJobBtn");
-const jobMessage = document.getElementById("jobMessage");
+const analyzeJobBtn =
+    document.getElementById("analyzeJobBtn");
 
-analyzeJobBtn.addEventListener("click", () => {
+const jobMessage =
+    document.getElementById("jobMessage");
+
+
+analyzeJobBtn.addEventListener("click", async () => {
 
     const role =
         document.getElementById("jobRole").value.trim();
@@ -168,8 +195,99 @@ analyzeJobBtn.addEventListener("click", () => {
         return;
     }
 
+    if (resumeSkills.length === 0) {
+        jobMessage.textContent =
+            "Please analyze your resume first so the job can be compared with your skills.";
+        return;
+    }
+
     jobMessage.textContent =
-        "Job description received! AI analysis will be connected in the backend stage.";
+        "Analyzing job description...";
+
+    const formData = new FormData();
+
+    formData.append("role", role);
+    formData.append("company", company);
+    formData.append("description", description);
+    formData.append(
+        "resume_skills",
+        resumeSkills.join(",")
+    );
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:8000/api/job/analyze",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.detail || "Job analysis failed."
+            );
+        }
+
+        const requiredSkills =
+            data.required_skills || [];
+
+        const detectedResumeSkills =
+            data.resume_skills || [];
+
+        const skillGap =
+            data.skill_gap || [];
+
+        jobMessage.innerHTML = `
+            <strong>${data.message}</strong><br><br>
+
+            Role: ${data.role}<br>
+            Company: ${data.company}<br><br>
+
+            <strong>Skills Required by Job:</strong><br>
+            ${
+                requiredSkills.length > 0
+                    ? requiredSkills.join(", ")
+                    : "No supported skills detected."
+            }
+
+            <br><br>
+
+            <strong>Your Resume Skills:</strong><br>
+            ${
+                detectedResumeSkills.length > 0
+                    ? detectedResumeSkills.join(", ")
+                    : "No skills detected."
+            }
+
+            <br><br>
+
+            <strong>Skill Gap:</strong><br>
+            ${
+                skillGap.length > 0
+                    ? skillGap.join(", ")
+                    : "No skill gap found. Great match!"
+            }
+        `;
+
+        console.log(
+            "Job analysis:",
+            data
+        );
+
+    } catch (error) {
+
+        jobMessage.textContent =
+            `Could not analyze job: ${error.message}`;
+
+        console.error(
+            "Job analysis error:",
+            error
+        );
+    }
 });
 
 
@@ -180,6 +298,7 @@ const submitAnswerBtn =
 
 const interviewMessage =
     document.getElementById("interviewMessage");
+
 
 submitAnswerBtn.addEventListener("click", () => {
 
@@ -204,11 +323,17 @@ async function checkBackend() {
     try {
 
         const response =
-            await fetch("http://127.0.0.1:8000/api/health");
+            await fetch(
+                "http://127.0.0.1:8000/api/health"
+            );
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
-        console.log("Backend:", data);
+        console.log(
+            "Backend:",
+            data
+        );
 
     } catch (error) {
 
@@ -226,6 +351,7 @@ checkBackend();
 
 const sendStudent =
     document.getElementById("sendStudent");
+
 
 sendStudent.addEventListener("click", async () => {
 
@@ -255,7 +381,8 @@ sendStudent.addEventListener("click", async () => {
             }
         );
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
         const resultMessage =
             document.getElementById("studentResult");
@@ -265,14 +392,17 @@ sendStudent.addEventListener("click", async () => {
             resultMessage.textContent =
                 data.message;
 
-            resultMessage.style.color = "green";
+            resultMessage.style.color =
+                "green";
 
         } else {
 
             resultMessage.textContent =
-                data.detail || "Something went wrong.";
+                data.detail ||
+                "Something went wrong.";
 
-            resultMessage.style.color = "red";
+            resultMessage.style.color =
+                "red";
         }
 
         console.log(data);
@@ -302,7 +432,8 @@ document.getElementById("loadStudents")
                     "http://127.0.0.1:8000/api/students"
                 );
 
-            const data = await response.json();
+            const data =
+                await response.json();
 
             if (!response.ok) {
 

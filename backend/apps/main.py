@@ -114,6 +114,8 @@ def get_students():
     }
 
 
+# ================= RESUME ANALYSIS =================
+
 @app.post("/api/resume/analyze")
 async def analyze_resume(
     name: str = Form(...),
@@ -212,7 +214,6 @@ async def analyze_resume(
         if skill in text
     ]
 
-    # Role-specific required skills
     role_requirements = {
 
         "ai software engineer": [
@@ -267,7 +268,6 @@ async def analyze_resume(
         ]
     }
 
-    # Normalize the target role
     role = " ".join(target_role.lower().split())
 
     required_skills = role_requirements.get(
@@ -288,5 +288,83 @@ async def analyze_resume(
         "resume_length": len(resume_text),
         "detected_skills": detected_skills,
         "required_skills": required_skills,
+        "skill_gap": skill_gap
+    }
+
+
+# ================= JOB DESCRIPTION ANALYSIS =================
+
+@app.post("/api/job/analyze")
+def analyze_job(
+    role: str = Form(...),
+    company: str = Form(...),
+    description: str = Form(...),
+    resume_skills: str = Form(...)
+):
+
+    if not role.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Target role is required."
+        )
+
+    if not company.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Company name is required."
+        )
+
+    if not description.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Job description is required."
+        )
+
+    # Skills that the application can currently recognize
+    skills = [
+        "python",
+        "java",
+        "c",
+        "c++",
+        "javascript",
+        "html",
+        "css",
+        "mysql",
+        "sql",
+        "mongodb",
+        "git",
+        "github",
+        "fastapi",
+        "react",
+        "machine learning",
+        "artificial intelligence",
+        "rag"
+    ]
+
+    job_text = description.lower()
+
+    required_skills = [
+        skill for skill in skills
+        if skill in job_text
+    ]
+
+    detected_resume_skills = [
+        skill.strip()
+        for skill in resume_skills.split(",")
+        if skill.strip()
+    ]
+
+    skill_gap = [
+        skill
+        for skill in required_skills
+        if skill not in detected_resume_skills
+    ]
+
+    return {
+        "message": "Job description analyzed successfully!",
+        "role": role,
+        "company": company,
+        "required_skills": required_skills,
+        "resume_skills": detected_resume_skills,
         "skill_gap": skill_gap
     }
