@@ -61,23 +61,20 @@
 
         </div>
 
-
         <div class="readiness-card">
 
             <div class="readiness-top">
                 <span>Placement Readiness</span>
-                <strong>68%</strong>
+                <strong id="heroReadiness">0%</strong>
             </div>
 
             <div class="progress-bar">
-                <div class="progress-fill" style="width: 68%;"></div>
+                <div class="progress-fill" id="heroReadinessBar" style="width: 0%;"></div>
             </div>
 
-            <p>
-                You're making good progress. Keep improving
-                your DSA and backend skills.
+            <p id="heroReadinessMessage">
+                Analyze your resume and job description to calculate readiness.
             </p>
-
             <div class="readiness-items">
 
                 <div>
@@ -198,30 +195,37 @@
 
         <div class="stat-card">
             <span>Placement Readiness</span>
-            <strong>68%</strong>
-            <small>+8% this month</small>
+            <strong id="dashboardReadiness">0%</strong>
+            <small id="dashboardReadinessNote">
+                Analyze a job to calculate readiness.
+            </small>
         </div>
 
         <div class="stat-card">
-            <span>Skills Completed</span>
-            <strong>12</strong>
-            <small>out of 18 skills</small>
+            <span>Skills Matched</span>
+            <strong id="dashboardMatchedSkills">0</strong>
+            <small id="dashboardMatchedNote">
+                No job analysis yet.
+            </small>
         </div>
 
         <div class="stat-card">
-            <span>Interview Questions</span>
-            <strong>34</strong>
-            <small>practiced</small>
+            <span>Skill Gaps</span>
+            <strong id="dashboardSkillGaps">0</strong>
+            <small id="dashboardGapNote">
+                No skill gaps detected yet.
+            </small>
         </div>
 
         <div class="stat-card">
-            <span>Preparation Streak</span>
-            <strong>7 Days</strong>
-            <small>Keep going!</small>
+            <span>Resume Skills</span>
+            <strong id="dashboardResumeSkills">0</strong>
+            <small id="dashboardResumeNote">
+                Resume not analyzed.
+            </small>
         </div>
 
     </div>
-
 
     <div class="dashboard-grid">
 
@@ -229,7 +233,7 @@
 
             <div class="card-header">
                 <h3>Preparation Progress</h3>
-                <span>68%</span>
+                <span id="dashboardProgressPercent">0%</span>
             </div>
 
             <div class="subject">
