@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from apps.models import Student
@@ -15,6 +14,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,12 +23,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/api/health")
 def health_check():
     return {
         "status": "success",
         "message": "AI Placement Copilot backend is running"
     }
+
+
 @app.get("/api/status")
 def get_status():
     return {
@@ -36,8 +39,6 @@ def get_status():
         "backend": "FastAPI",
         "status": "ready"
     }
-
-
 
 
 @app.post("/api/students")
@@ -59,33 +60,33 @@ def create_student(student: Student):
     try:
         cursor.execute(query, values)
         db.commit()
+
     except mysql.connector.IntegrityError:
+        cursor.close()
+
         raise HTTPException(
             status_code=409,
-        detail="This email is already registered."
-    )
+            detail="This email is already registered."
+        )
 
     student_id = cursor.lastrowid
     cursor.close()
-    db.commit()
 
     return {
         "message": "Student saved successfully!",
         "student_id": student_id
     }
-
-    return {
-        "message": "Student saved successfully!",
-        "student_id": student_id
-    }
-
 
 
 @app.get("/api/db-test")
 def database_test():
+
     cursor = db.cursor()
+
     cursor.execute("SELECT 1")
+
     result = cursor.fetchone()
+
     cursor.close()
 
     return {
@@ -93,8 +94,10 @@ def database_test():
         "result": result[0]
     }
 
+
 @app.get("/api/students")
 def get_students():
+
     cursor = db.cursor(dictionary=True)
 
     cursor.execute(
@@ -102,14 +105,13 @@ def get_students():
     )
 
     students = cursor.fetchall()
+
     cursor.close()
 
     return {
         "count": len(students),
         "students": students
     }
-
-
 
 
 @app.post("/api/resume/analyze")
@@ -162,10 +164,14 @@ async def analyze_resume(
             )
 
         else:
+
             raise HTTPException(
                 status_code=400,
                 detail="Only PDF and DOCX files are currently supported."
             )
+
+    except HTTPException:
+        raise
 
     except Exception:
         raise HTTPException(
@@ -197,12 +203,81 @@ async def analyze_resume(
         "fastapi",
         "react",
         "machine learning",
-        "artificial intelligence"
+        "artificial intelligence",
+        "rag"
     ]
 
     detected_skills = [
         skill for skill in skills
         if skill in text
+    ]
+
+    # Role-specific required skills
+    role_requirements = {
+
+        "ai software engineer": [
+            "python",
+            "sql",
+            "git",
+            "fastapi",
+            "machine learning",
+            "artificial intelligence"
+        ],
+
+        "ai engineer": [
+            "python",
+            "sql",
+            "machine learning",
+            "artificial intelligence",
+            "fastapi",
+            "rag"
+        ],
+
+        "software engineer": [
+            "java",
+            "python",
+            "sql",
+            "git",
+            "github"
+        ],
+
+        "full stack developer": [
+            "html",
+            "css",
+            "javascript",
+            "react",
+            "sql",
+            "git"
+        ],
+
+        "frontend developer": [
+            "html",
+            "css",
+            "javascript",
+            "react",
+            "git"
+        ],
+
+        "backend developer": [
+            "python",
+            "sql",
+            "fastapi",
+            "git",
+            "github"
+        ]
+    }
+
+    # Normalize the target role
+    role = " ".join(target_role.lower().split())
+
+    required_skills = role_requirements.get(
+        role,
+        []
+    )
+
+    skill_gap = [
+        skill for skill in required_skills
+        if skill not in detected_skills
     ]
 
     return {
@@ -211,5 +286,7 @@ async def analyze_resume(
         "target_role": target_role,
         "filename": resume.filename,
         "resume_length": len(resume_text),
-        "detected_skills": detected_skills
+        "detected_skills": detected_skills,
+        "required_skills": required_skills,
+        "skill_gap": skill_gap
     }

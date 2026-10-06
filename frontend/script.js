@@ -1,3 +1,4 @@
+
 // ================= NAVIGATION =================
 
 const menuBtn = document.getElementById("menuBtn");
@@ -33,9 +34,14 @@ const resumeMessage = document.getElementById("resumeMessage");
 
 analyzeResumeBtn.addEventListener("click", async () => {
 
-    const name = document.getElementById("studentName").value.trim();
-    const targetRole = document.getElementById("targetRole").value.trim();
-    const resumeFile = document.getElementById("resumeFile").files[0];
+    const name =
+        document.getElementById("studentName").value.trim();
+
+    const targetRole =
+        document.getElementById("targetRole").value.trim();
+
+    const resumeFile =
+        document.getElementById("resumeFile").files[0];
 
     if (!name) {
         resumeMessage.textContent = "Please enter your name.";
@@ -79,6 +85,8 @@ analyzeResumeBtn.addEventListener("click", async () => {
         }
 
         const detectedSkills = data.detected_skills || [];
+        const requiredSkills = data.required_skills || [];
+        const skillGap = data.skill_gap || [];
 
         resumeMessage.innerHTML = `
             <strong>${data.message}</strong><br><br>
@@ -88,11 +96,29 @@ analyzeResumeBtn.addEventListener("click", async () => {
             Resume: ${data.filename}<br>
             Characters extracted: ${data.resume_length}<br><br>
 
-            <strong>Detected Skills:</strong><br>
+            <strong>Skills Found in Your Resume:</strong><br>
+            ${
+                detectedSkills.length > 0
+                    ? detectedSkills.join(", ")
+                    : "No supported skills detected."
+            }
 
-            ${detectedSkills.length > 0
-                ? detectedSkills.join(", ")
-                : "No supported skills detected yet."
+            <br><br>
+
+            <strong>Skills Required for Your Role:</strong><br>
+            ${
+                requiredSkills.length > 0
+                    ? requiredSkills.join(", ")
+                    : "No role requirements found."
+            }
+
+            <br><br>
+
+            <strong>Skill Gap:</strong><br>
+            ${
+                skillGap.length > 0
+                    ? skillGap.join(", ")
+                    : "No skill gaps found. Great job!"
             }
         `;
 
@@ -102,6 +128,8 @@ analyzeResumeBtn.addEventListener("click", async () => {
 
         resumeMessage.textContent =
             `Could not analyze resume: ${error.message}`;
+
+        console.error("Resume analysis error:", error);
     }
 });
 
@@ -113,23 +141,30 @@ const jobMessage = document.getElementById("jobMessage");
 
 analyzeJobBtn.addEventListener("click", () => {
 
-    const role = document.getElementById("jobRole").value.trim();
-    const company = document.getElementById("companyName").value.trim();
+    const role =
+        document.getElementById("jobRole").value.trim();
+
+    const company =
+        document.getElementById("companyName").value.trim();
+
     const description =
         document.getElementById("jobDescription").value.trim();
 
     if (!role) {
-        jobMessage.textContent = "Please enter the target role.";
+        jobMessage.textContent =
+            "Please enter the target role.";
         return;
     }
 
     if (!company) {
-        jobMessage.textContent = "Please enter the company name.";
+        jobMessage.textContent =
+            "Please enter the company name.";
         return;
     }
 
     if (!description) {
-        jobMessage.textContent = "Please paste the job description.";
+        jobMessage.textContent =
+            "Please paste the job description.";
         return;
     }
 
@@ -140,7 +175,9 @@ analyzeJobBtn.addEventListener("click", () => {
 
 // ================= INTERVIEW =================
 
-const submitAnswerBtn = document.getElementById("submitAnswerBtn");
+const submitAnswerBtn =
+    document.getElementById("submitAnswerBtn");
+
 const interviewMessage =
     document.getElementById("interviewMessage");
 
