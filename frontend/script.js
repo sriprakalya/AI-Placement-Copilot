@@ -1038,281 +1038,442 @@ analyzeJobBtn.addEventListener("click", async () => {
 let interviewQuestions = [];
 let currentInterviewQuestion = 0;
 let interviewAnswers = [];
+let markedQuestions = new Set();
+let reviewQueue = [];
+let reviewPosition = 0;
+let isReviewRound = false;
+let evaluationResults = [];
+let isEvaluatingInterview = false;
 
+const INTERVIEW_API = "http://127.0.0.1:8000";
 
 async function startInterview() {
+    const roleElement = document.getElementById("interviewRole");
+    const container = document.getElementById("interviewContainer");
 
-    const roleElement =
-        document.getElementById("interviewRole");
+    if (!roleElement || !container) return;
 
-    const container =
-        document.getElementById("interviewContainer");
-
-    if (!roleElement || !container) {
-        return;
-    }
-
-    const role = roleElement.value;
-
-    container.innerHTML = `
-        <div class="interview-empty">
-            <p>Loading interview questions...</p>
-        </div>
-    `;
+    container.textContent = "Loading interview questions...";
 
     try {
-
         const response = await fetch(
-            `http://127.0.0.1:8000/api/interview/questions?role=${encodeURIComponent(role)}`
+            `${INTERVIEW_API}/api/interview/questions?role=${encodeURIComponent(roleElement.value)}`
         );
-
-        if (!response.ok) {
-            throw new Error("Failed to load interview questions.");
-        }
 
         const data = await response.json();
 
+        if (!response.ok) {
+            throw new Error(data.detail || "Could not load questions.");
+        }
+
         interviewQuestions = data.questions || [];
 
-        currentInterviewQuestion = 0;
-
-        interviewAnswers = [];
-
-        if (interviewQuestions.length === 0) {
-
-            container.innerHTML = `
-                <div class="interview-empty">
-                    <p>No interview questions available.</p>
-                </div>
-            `;
-
+        if (!interviewQuestions.length) {
+            container.textContent = "No interview questions are available.";
             return;
         }
 
+        currentInterviewQuestion = 0;
+        interviewAnswers = Array(interviewQuestions.length).fill("");
+        markedQuestions = new Set();
+        reviewQueue = [];
+        reviewPosition = 0;
+        isReviewRound = false;
+        evaluationResults = [];
+        isEvaluatingInterview = false;
+
         showInterviewQuestion();
-
     } catch (error) {
-
-        console.error(error);
-
-        container.innerHTML = `
-            <div class="interview-empty">
-                <p>
-                    Could not load interview questions.
-                    Make sure the backend is running.
-                </p>
-            </div>
-        `;
+        container.textContent = `Could not start interview: ${error.message}`;
     }
 }
 
+function saveCurrentAnswer() {
+    const answerElement = document.getElementById("interviewAnswer");
+
+    if (answerElement) {
+        interviewAnswers[currentInterviewQuestion] =
+            answerElement.value.trim();
+    }
+}
 
 function showInterviewQuestion() {
-    const container =
-        document.getElementById("interviewContainer");
-
+    const container = document.getElementById("interviewContainer");
     if (!container) return;
 
-    const question =
-        interviewQuestions[currentInterviewQuestion];
+    const question = interviewQuestions[currentInterviewQuestion];
+    const questionNumber = currentInterviewQuestion + 1;
+    const totalQuestions = interviewQuestions.length;
+    const isLastQuestion = isReviewRound
+        ? reviewPosition === reviewQueue.length - 1
+        : currentInterviewQuestion === totalQuestions - 1;
 
-    const questionNumber =
-        currentInterviewQuestion + 1;
-
-    const totalQuestions =
-        interviewQuestions.length;
-
-    const isLastQuestion =
-        currentInterviewQuestion === totalQuestions - 1;
+    const isMarked = markedQuestions.has(currentInterviewQuestion);
 
     container.innerHTML = `
         <div class="interview-question">
-
             <div class="interview-question-number">
-                Question ${questionNumber} of ${totalQuestions}
+                ${isReviewRound ? "Review Round" : "Interview"}
+                — Question ${questionNumber} of ${totalQuestions}
             </div>
 
-            <h3>${question}</h3>
+            <h3 id="currentInterviewQuestionText"></h3>
+
+            ${isMarked ? `
+                <p class="interview-mark-status">Marked for review</p>
+            ` : ""}
 
             <textarea
                 id="interviewAnswer"
                 class="interview-answer"
+                rows="6"
                 placeholder="Type your answer here..."
             ></textarea>
 
             <div class="interview-actions">
-
                 <span class="interview-progress">
-                    ${Math.round(
-                        (questionNumber / totalQuestions) * 100
-                    )}% of questions viewed
+                    ${isReviewRound
+                        ? `Review question ${reviewPosition + 1} of ${reviewQueue.length}`
+                        : `${questionNumber} of ${totalQuestions} questions visited`}
                 </span>
 
                 <div class="interview-buttons">
-
                     <button
                         type="button"
                         class="secondary-btn"
-                        id="skipInterviewQuestionBtn"
+                        id="markInterviewQuestionBtn"
                     >
-                        ${isLastQuestion
-                            ? "Skip & Finish"
-                            : "Skip Question"}
+                        ${isMarked ? "Remove Flag" : "Mark for Review"}
                     </button>
 
                     <button
                         type="button"
                         class="primary-btn"
-                        id="submitInterviewAnswerBtn"
+                        id="nextInterviewQuestionBtn"
                     >
                         ${isLastQuestion
-                            ? "Finish Interview"
+                            ? (isReviewRound ? "Submit Interview" : "Continue")
                             : "Next Question"}
                     </button>
-
                 </div>
             </div>
         </div>
     `;
 
-    document
-        .getElementById("submitInterviewAnswerBtn")
-        .addEventListener("click", submitInterviewAnswer);
+    document.getElementById("currentInterviewQuestionText").textContent =
+        question;
 
-    document
-        .getElementById("skipInterviewQuestionBtn")
-        .addEventListener("click", skipInterviewQuestion);
+    document.getElementById("interviewAnswer").value =
+        interviewAnswers[currentInterviewQuestion] || "";
+
+    document.getElementById("markInterviewQuestionBtn")
+        .addEventListener("click", toggleMarkedQuestion);
+
+    document.getElementById("nextInterviewQuestionBtn")
+        .addEventListener("click", moveToNextQuestion);
 }
 
+function toggleMarkedQuestion() {
+    saveCurrentAnswer();
 
+    const index = currentInterviewQuestion;
 
-function submitInterviewAnswer() {
-    const answerElement =
-        document.getElementById("interviewAnswer");
+    if (markedQuestions.has(index)) {
+        markedQuestions.delete(index);
+    } else {
+        markedQuestions.add(index);
+    }
 
-    const answer =
-        answerElement
-            ? answerElement.value.trim()
-            : "";
+    showInterviewQuestion();
+}
 
-    // Empty answers are allowed.
-    // The user can skip a question.
-    interviewAnswers.push(answer);
+function moveToNextQuestion() {
+    saveCurrentAnswer();
 
-    if (
-        currentInterviewQuestion <
-        interviewQuestions.length - 1
-    ) {
-        currentInterviewQuestion++;
+    if (!isReviewRound) {
+        if (currentInterviewQuestion < interviewQuestions.length - 1) {
+            currentInterviewQuestion++;
+            showInterviewQuestion();
+            return;
+        }
+
+        // The first pass is complete. Revisit flagged questions.
+        reviewQueue = [...markedQuestions].sort((a, b) => a - b);
+
+        if (reviewQueue.length > 0) {
+            isReviewRound = true;
+            reviewPosition = 0;
+            currentInterviewQuestion = reviewQueue[reviewPosition];
+            showInterviewQuestion();
+        } else {
+            confirmInterviewSubmission();
+        }
+
+        return;
+    }
+
+    // Move through the flagged questions.
+    if (reviewPosition < reviewQueue.length - 1) {
+        reviewPosition++;
+        currentInterviewQuestion = reviewQueue[reviewPosition];
         showInterviewQuestion();
     } else {
-        showInterviewResult();
+        confirmInterviewSubmission();
     }
 }
 
-
-
-function skipInterviewQuestion() {
-    // Store an empty answer for the skipped question.
-    interviewAnswers.push("");
-
-    if (
-        currentInterviewQuestion <
-        interviewQuestions.length - 1
-    ) {
-        currentInterviewQuestion++;
-        showInterviewQuestion();
-    } else {
-        showInterviewResult();
-    }
-}
-
-
-function showInterviewResult() {
-    const container =
-        document.getElementById("interviewContainer");
-
+function confirmInterviewSubmission() {
+    const container = document.getElementById("interviewContainer");
     if (!container) return;
 
-    const answeredQuestions =
-        interviewAnswers.filter(
-            answer => answer.length > 0
-        ).length;
-
-    const totalQuestions =
-        interviewQuestions.length;
-
-    const skippedQuestions =
-        totalQuestions - answeredQuestions;
-
-    const completion =
-        totalQuestions === 0
-            ? 0
-            : Math.round(
-                (answeredQuestions / totalQuestions) * 100
-            );
+    const attempted = interviewAnswers.filter(answer => answer.trim()).length;
+    const unanswered = interviewQuestions.length - attempted;
 
     container.innerHTML = `
         <div class="interview-result">
-
-            <h3>Interview Practice Completed</h3>
-
-            <div class="interview-score">
-                ${completion}%
-            </div>
-
-            <p>
-                <strong>Practice Completion</strong>
-            </p>
-
-            <p>
-                You answered
-                <strong>${answeredQuestions}</strong>
-                out of
-                <strong>${totalQuestions}</strong>
-                questions.
-            </p>
-
-            <p>
-                Skipped:
-                <strong>${skippedQuestions}</strong>
-            </p>
-
-            <p>
-                This percentage shows how many questions
-                you attempted. It does not evaluate the
-                quality or correctness of your answers.
-            </p>
-
-            <button
-                type="button"
-                class="primary-btn"
-                id="restartInterviewBtn"
-            >
-                Practice Again
+            <h3>Ready to Submit?</h3>
+            <p>Questions attempted: <strong>${attempted}</strong></p>
+            <p>Unanswered questions: <strong>${unanswered}</strong></p>
+            <p>Your answers will now be evaluated by AI. This may take a little time.</p>
+            <button type="button" class="primary-btn" id="confirmSubmitInterviewBtn">
+                Submit Interview
             </button>
-
+            <button type="button" class="secondary-btn" id="returnToInterviewBtn">
+                Return to Questions
+            </button>
         </div>
     `;
 
-    document
-        .getElementById("restartInterviewBtn")
-        .addEventListener(
-            "click",
-            startInterview
-        );
+    document.getElementById("confirmSubmitInterviewBtn")
+        .addEventListener("click", evaluateEntireInterview);
+
+    document.getElementById("returnToInterviewBtn")
+        .addEventListener("click", () => {
+            if (isReviewRound && reviewQueue.length) {
+                currentInterviewQuestion = reviewQueue[reviewPosition];
+            }
+            showInterviewQuestion();
+        });
 }
 
+async function evaluateEntireInterview() {
+    if (isEvaluatingInterview) return;
+    isEvaluatingInterview = true;
 
-const startInterviewBtn =
-    document.getElementById("startInterviewBtn");
+    const container = document.getElementById("interviewContainer");
+    const role = document.getElementById("interviewRole").value;
+
+    container.innerHTML = `
+        <div class="interview-result">
+            <h3>Evaluating Your Interview...</h3>
+            <p id="interviewEvaluationProgress">
+                Preparing your answers for evaluation.
+            </p>
+        </div>
+    `;
+
+    evaluationResults = [];
+
+    try {
+        for (let i = 0; i < interviewQuestions.length; i++) {
+            const answer = interviewAnswers[i].trim();
+            const progress = document.getElementById(
+                "interviewEvaluationProgress"
+            );
+
+            if (progress) {
+                progress.textContent =
+                    `Evaluating question ${i + 1} of ${interviewQuestions.length}...`;
+            }
+
+            if (!answer) {
+                evaluationResults.push({
+                    question: interviewQuestions[i],
+                    answer: "",
+                    skipped: true,
+                    score: 0,
+                    correctness: "Not answered.",
+                    strengths: [],
+                    improvements: ["Attempt this question to receive feedback."],
+                    suggested_answer: "No answer was submitted."
+                });
+                continue;
+            }
+
+            const response = await fetch(
+                `${INTERVIEW_API}/api/interview/evaluate`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        role,
+                        question: interviewQuestions[i],
+                        answer
+                    })
+                }
+            );
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    data.detail ||
+                    `Evaluation failed for question ${i + 1}.`
+                );
+            }
+
+            evaluationResults.push({
+                question: interviewQuestions[i],
+                answer,
+                skipped: false,
+                score: Number(data.score) || 0,
+                correctness: data.correctness || "No feedback provided.",
+                strengths: Array.isArray(data.strengths) ? data.strengths : [],
+                improvements: Array.isArray(data.improvements)
+                    ? data.improvements
+                    : [],
+                suggested_answer: data.suggested_answer || "No suggested answer provided."
+            });
+        }
+
+        showOverallInterviewResults();
+    } catch (error) {
+        container.innerHTML = `
+            <div class="interview-result">
+                <h3>Evaluation Could Not Be Completed</h3>
+                <p id="interviewEvaluationError"></p>
+                <button type="button" class="primary-btn" id="retryInterviewEvaluationBtn">
+                    Retry Evaluation
+                </button>
+            </div>
+        `;
+
+        document.getElementById("interviewEvaluationError").textContent =
+            error.message;
+
+        document.getElementById("retryInterviewEvaluationBtn")
+            .addEventListener("click", evaluateEntireInterview);
+    } finally {
+        isEvaluatingInterview = false;
+    }
+}
+
+function showOverallInterviewResults() {
+    const container = document.getElementById("interviewContainer");
+    if (!container) return;
+
+    const attemptedResults = evaluationResults.filter(item => !item.skipped);
+    const attempted = attemptedResults.length;
+    const unanswered = evaluationResults.length - attempted;
+
+    // The overall score includes all 5 questions.
+    // Unanswered questions receive zero points.
+    const totalScore = evaluationResults.reduce(
+        (sum, item) => sum + item.score,
+        0
+    );
+
+    const overallScore = evaluationResults.length
+        ? Math.round(totalScore / evaluationResults.length)
+        : 0;
+
+    container.innerHTML = `
+        <div class="interview-result">
+            <h3>Interview Evaluation Complete</h3>
+
+            <div class="interview-score">${overallScore}/100</div>
+
+            <p><strong>Overall AI Interview Score</strong></p>
+            <p>Questions attempted: <strong>${attempted}</strong></p>
+            <p>Unanswered questions: <strong>${unanswered}</strong></p>
+
+            <p>
+                Your score is based on AI evaluations of your answers.
+                Unanswered questions receive zero points.
+            </p>
+
+            <div id="individualInterviewResults"></div>
+
+            <button type="button" class="primary-btn" id="restartInterviewBtn">
+                Practice Again
+            </button>
+        </div>
+    `;
+
+    const resultsContainer = document.getElementById(
+        "individualInterviewResults"
+    );
+
+    evaluationResults.forEach((item, index) => {
+        const section = document.createElement("section");
+        section.className = "individual-interview-result";
+
+        const title = document.createElement("h3");
+        title.textContent = `Question ${index + 1}: ${item.score}/100`;
+        section.appendChild(title);
+
+        const question = document.createElement("p");
+        question.textContent = item.question;
+        section.appendChild(question);
+
+        const answerHeading = document.createElement("h4");
+        answerHeading.textContent = "Your Answer";
+        section.appendChild(answerHeading);
+
+        const answer = document.createElement("p");
+        answer.textContent = item.answer || "Not answered";
+        section.appendChild(answer);
+
+        addEvaluationText(section, "Correctness", item.correctness);
+        addEvaluationList(section, "Strengths", item.strengths);
+        addEvaluationList(section, "Areas to Improve", item.improvements);
+        addEvaluationText(section, "Suggested Answer", item.suggested_answer);
+
+        resultsContainer.appendChild(section);
+    });
+
+    document.getElementById("restartInterviewBtn")
+        .addEventListener("click", startInterview);
+}
+
+function addEvaluationText(container, headingText, content) {
+    const heading = document.createElement("h4");
+    heading.textContent = headingText;
+    container.appendChild(heading);
+
+    const paragraph = document.createElement("p");
+    paragraph.textContent = content || "No feedback available.";
+    container.appendChild(paragraph);
+}
+
+function addEvaluationList(container, headingText, items) {
+    const heading = document.createElement("h4");
+    heading.textContent = headingText;
+    container.appendChild(heading);
+
+    const list = document.createElement("ul");
+
+    items.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.appendChild(li);
+    });
+
+    if (!items.length) {
+        const li = document.createElement("li");
+        li.textContent = "No items provided.";
+        list.appendChild(li);
+    }
+
+    container.appendChild(list);
+}
+
+const startInterviewBtn = document.getElementById("startInterviewBtn");
 
 if (startInterviewBtn) {
-
-    startInterviewBtn.addEventListener(
-        "click",
-        startInterview
-    );
+    startInterviewBtn.addEventListener("click", startInterview);
 }
 
 
