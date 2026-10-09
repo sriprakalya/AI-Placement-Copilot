@@ -649,71 +649,79 @@
 </section>
 
 
-<!-- ================= INTERVIEW ================= -->
-
-<section class="section" id="interview">
+<!-- ================= INTERVIEW PRACTICE ================= -->
+<section class="section light-section" id="interview">
 
     <div class="section-heading left-heading">
-
-        <p>AI INTERVIEW PRACTICE</p>
-
-        <h2>Practice Like a Real Interview</h2>
-
+        <p>INTERVIEW PRACTICE</p>
+        <h2>Practice Before the Interview</h2>
         <span>
-            Start with technical questions and improve your answers.
+            Select your target role and practice common
+            technical interview questions.
         </span>
-
     </div>
-
 
     <div class="interview-card">
 
-        <div class="question-number">
-            Question 01
-        </div>
+        <div class="interview-controls">
 
-        <h3>
-            What is the difference between ArrayList and LinkedList
-            in Java?
-        </h3>
+            <div class="form-group">
+                <label for="interviewRole">Target Role</label>
 
-        <div class="answer-area">
+                <select id="interviewRole">
+                    <option value="software engineer">
+                        Software Engineer
+                    </option>
 
-            <textarea
-                id="interviewAnswer"
-                rows="7"
-                placeholder="Type your answer here..."
-            ></textarea>
+                    <option value="backend developer">
+                        Backend Developer
+                    </option>
 
-            <button class="primary-btn" id="submitAnswerBtn">
-                Submit Answer
+                    <option value="frontend developer">
+                        Frontend Developer
+                    </option>
+
+                    <option value="java developer">
+                        Java Developer
+                    </option>
+
+                    <option value="python developer">
+                        Python Developer
+                    </option>
+
+                    <option value="ai software engineer">
+                        AI Software Engineer
+                    </option>
+                </select>
+            </div>
+
+            <button
+                type="button"
+                class="primary-btn"
+                id="startInterviewBtn"
+            >
+                Start Interview
             </button>
 
-            <p class="form-message" id="interviewMessage"></p>
+        </div>
+
+        <div id="interviewContainer" class="interview-container">
+
+            <div class="interview-empty">
+                <h3>Ready to practice?</h3>
+
+                <p>
+                    Select your target role and click
+                    <strong>Start Interview</strong>
+                    to begin.
+                </p>
+            </div>
 
         </div>
 
     </div>
 
 </section>
-
-<!--Student profile test-->
-<section id="student-api-test">
-    <h2>Student Profile Test</h2>
-
-    <input type="text" id="studentName" placeholder="Name">
-    <input type="email" id="studentEmail" placeholder="Email">
-    <input type="text" id="targetRole" placeholder="Target Role">
-
-    <button id="sendStudent">Send to Backend</button>
-
-    <p id="studentResult"></p>
-
-    <button id="loadStudents">View Saved Students</button>
-
-    <div id="studentsList"></div>
-</section>
-
 
 <!-- ================= FOOTER ================= -->
 

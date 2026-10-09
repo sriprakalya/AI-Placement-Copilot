@@ -368,3 +368,71 @@ def analyze_job(
         "resume_skills": detected_resume_skills,
         "skill_gap": skill_gap
     }
+
+    # ================= INTERVIEW PRACTICE =================
+
+INTERVIEW_QUESTIONS = {
+    "software engineer": [
+        "Explain the difference between an array and a linked list.",
+        "What is Object-Oriented Programming? Explain its main principles.",
+        "What is the difference between == and .equals() in Java?",
+        "What is the purpose of a database?",
+        "Explain the difference between GET and POST requests."
+    ],
+
+    "frontend developer": [
+        "What is the difference between HTML, CSS and JavaScript?",
+        "What is the DOM?",
+        "Explain the difference between let, const and var in JavaScript.",
+        "What is responsive web design?",
+        "What is an API and how does a frontend application use one?"
+    ],
+
+    "backend developer": [
+        "What is a REST API?",
+        "What is the difference between GET, POST, PUT and DELETE?",
+        "What is a database and why is it needed?",
+        "What is the difference between authentication and authorization?",
+        "What is FastAPI and why would you use it?"
+    ],
+
+    "java developer": [
+        "What are the four main principles of OOP?",
+        "What is the difference between an interface and an abstract class?",
+        "What is exception handling in Java?",
+        "What is the difference between ArrayList and LinkedList?",
+        "What is the Java Virtual Machine?"
+    ],
+
+    "python developer": [
+        "What are the main features of Python?",
+        "What is the difference between a list and a tuple?",
+        "What are Python dictionaries?",
+        "What is a Python function?",
+        "What is the difference between == and is in Python?"
+    ],
+
+    "ai software engineer": [
+        "What is the difference between AI, machine learning and generative AI?",
+        "What is an LLM?",
+        "What is Retrieval-Augmented Generation (RAG)?",
+        "What is an API and how can an AI application use one?",
+        "What is the purpose of embeddings in AI applications?"
+    ]
+}
+
+
+@app.get("/api/interview/questions")
+def get_interview_questions(role: str = "software engineer"):
+
+    role_key = role.lower().strip()
+
+    questions = INTERVIEW_QUESTIONS.get(
+        role_key,
+        INTERVIEW_QUESTIONS["software engineer"]
+    )
+
+    return {
+        "role": role,
+        "questions": questions
+    }

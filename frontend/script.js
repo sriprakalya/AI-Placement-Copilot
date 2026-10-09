@@ -1033,35 +1033,287 @@ analyzeJobBtn.addEventListener("click", async () => {
 });
 
 
-// ================= INTERVIEW =================
+// ================= INTERVIEW PRACTICE =================
 
-const submitAnswerBtn =
-    document.getElementById("submitAnswerBtn");
-
-const interviewMessage =
-    document.getElementById("interviewMessage");
+let interviewQuestions = [];
+let currentInterviewQuestion = 0;
+let interviewAnswers = [];
 
 
-submitAnswerBtn.addEventListener("click", () => {
+async function startInterview() {
 
-    const answer =
-        document.getElementById("interviewAnswer").value.trim();
+    const roleElement =
+        document.getElementById("interviewRole");
 
+    const container =
+        document.getElementById("interviewContainer");
 
-    if (!answer) {
-
-        interviewMessage.textContent =
-            "Please type your answer before submitting.";
-
+    if (!roleElement || !container) {
         return;
-
     }
 
+    const role = roleElement.value;
 
-    interviewMessage.textContent =
-        "Answer submitted! AI evaluation will be connected in the backend stage.";
+    container.innerHTML = `
+        <div class="interview-empty">
+            <p>Loading interview questions...</p>
+        </div>
+    `;
 
-});
+    try {
+
+        const response = await fetch(
+            `http://127.0.0.1:8000/api/interview/questions?role=${encodeURIComponent(role)}`
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to load interview questions.");
+        }
+
+        const data = await response.json();
+
+        interviewQuestions = data.questions || [];
+
+        currentInterviewQuestion = 0;
+
+        interviewAnswers = [];
+
+        if (interviewQuestions.length === 0) {
+
+            container.innerHTML = `
+                <div class="interview-empty">
+                    <p>No interview questions available.</p>
+                </div>
+            `;
+
+            return;
+        }
+
+        showInterviewQuestion();
+
+    } catch (error) {
+
+        console.error(error);
+
+        container.innerHTML = `
+            <div class="interview-empty">
+                <p>
+                    Could not load interview questions.
+                    Make sure the backend is running.
+                </p>
+            </div>
+        `;
+    }
+}
+
+
+function showInterviewQuestion() {
+    const container =
+        document.getElementById("interviewContainer");
+
+    if (!container) return;
+
+    const question =
+        interviewQuestions[currentInterviewQuestion];
+
+    const questionNumber =
+        currentInterviewQuestion + 1;
+
+    const totalQuestions =
+        interviewQuestions.length;
+
+    const isLastQuestion =
+        currentInterviewQuestion === totalQuestions - 1;
+
+    container.innerHTML = `
+        <div class="interview-question">
+
+            <div class="interview-question-number">
+                Question ${questionNumber} of ${totalQuestions}
+            </div>
+
+            <h3>${question}</h3>
+
+            <textarea
+                id="interviewAnswer"
+                class="interview-answer"
+                placeholder="Type your answer here..."
+            ></textarea>
+
+            <div class="interview-actions">
+
+                <span class="interview-progress">
+                    ${Math.round(
+                        (questionNumber / totalQuestions) * 100
+                    )}% of questions viewed
+                </span>
+
+                <div class="interview-buttons">
+
+                    <button
+                        type="button"
+                        class="secondary-btn"
+                        id="skipInterviewQuestionBtn"
+                    >
+                        ${isLastQuestion
+                            ? "Skip & Finish"
+                            : "Skip Question"}
+                    </button>
+
+                    <button
+                        type="button"
+                        class="primary-btn"
+                        id="submitInterviewAnswerBtn"
+                    >
+                        ${isLastQuestion
+                            ? "Finish Interview"
+                            : "Next Question"}
+                    </button>
+
+                </div>
+            </div>
+        </div>
+    `;
+
+    document
+        .getElementById("submitInterviewAnswerBtn")
+        .addEventListener("click", submitInterviewAnswer);
+
+    document
+        .getElementById("skipInterviewQuestionBtn")
+        .addEventListener("click", skipInterviewQuestion);
+}
+
+
+
+function submitInterviewAnswer() {
+    const answerElement =
+        document.getElementById("interviewAnswer");
+
+    const answer =
+        answerElement
+            ? answerElement.value.trim()
+            : "";
+
+    // Empty answers are allowed.
+    // The user can skip a question.
+    interviewAnswers.push(answer);
+
+    if (
+        currentInterviewQuestion <
+        interviewQuestions.length - 1
+    ) {
+        currentInterviewQuestion++;
+        showInterviewQuestion();
+    } else {
+        showInterviewResult();
+    }
+}
+
+
+
+function skipInterviewQuestion() {
+    // Store an empty answer for the skipped question.
+    interviewAnswers.push("");
+
+    if (
+        currentInterviewQuestion <
+        interviewQuestions.length - 1
+    ) {
+        currentInterviewQuestion++;
+        showInterviewQuestion();
+    } else {
+        showInterviewResult();
+    }
+}
+
+
+function showInterviewResult() {
+    const container =
+        document.getElementById("interviewContainer");
+
+    if (!container) return;
+
+    const answeredQuestions =
+        interviewAnswers.filter(
+            answer => answer.length > 0
+        ).length;
+
+    const totalQuestions =
+        interviewQuestions.length;
+
+    const skippedQuestions =
+        totalQuestions - answeredQuestions;
+
+    const completion =
+        totalQuestions === 0
+            ? 0
+            : Math.round(
+                (answeredQuestions / totalQuestions) * 100
+            );
+
+    container.innerHTML = `
+        <div class="interview-result">
+
+            <h3>Interview Practice Completed</h3>
+
+            <div class="interview-score">
+                ${completion}%
+            </div>
+
+            <p>
+                <strong>Practice Completion</strong>
+            </p>
+
+            <p>
+                You answered
+                <strong>${answeredQuestions}</strong>
+                out of
+                <strong>${totalQuestions}</strong>
+                questions.
+            </p>
+
+            <p>
+                Skipped:
+                <strong>${skippedQuestions}</strong>
+            </p>
+
+            <p>
+                This percentage shows how many questions
+                you attempted. It does not evaluate the
+                quality or correctness of your answers.
+            </p>
+
+            <button
+                type="button"
+                class="primary-btn"
+                id="restartInterviewBtn"
+            >
+                Practice Again
+            </button>
+
+        </div>
+    `;
+
+    document
+        .getElementById("restartInterviewBtn")
+        .addEventListener(
+            "click",
+            startInterview
+        );
+}
+
+
+const startInterviewBtn =
+    document.getElementById("startInterviewBtn");
+
+if (startInterviewBtn) {
+
+    startInterviewBtn.addEventListener(
+        "click",
+        startInterview
+    );
+}
 
 
 // ================= BACKEND CONNECTION =================
